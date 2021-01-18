@@ -34,7 +34,7 @@ jobs:
           keys:
             - yarn-packages-{{ checksum "yarn.lock" }}-{{ .Environment.CACHE_VERSION }}
       - run:
-          command : yarn run build
+          command: yarn run build
       - run:
           command: |
             cp dist/ /tmp/dist -r
@@ -56,7 +56,7 @@ jobs:
           command: |
             sudo npm install -g --silent netlify-cli
             netlify deploy --prod --auth $NETLIFY_AUTH_TOKEN --dir=/tmp/dist --site $NETLIFY_SITE_ID
-  docker-build:
+  docker-build-push:
     working_directory: /dockerapp
     docker:
       - image: docker:17.05.0-ce-git
@@ -64,15 +64,18 @@ jobs:
       - checkout
       - setup_remote_docker
       - run:
-          name:  dockerize the app
+          name: dockerize the app
           command: |
             docker build --cache-from=app -t app .
       - run:
           name: Publish app to docker hub
           command: |
             docker login -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWORD
+            docker tag app $DOCKER_HUB_USERNAME/tp-final-devops-front:$CIRCLE_BUILD_NUM
             docker tag app $DOCKER_HUB_USERNAME/tp-final-devops-front:latest
+            docker push $DOCKER_HUB_USERNAME/tp-final-devops-front:$CIRCLE_BUILD_NUM
             docker push $DOCKER_HUB_USERNAME/tp-final-devops-front:latest
+
 workflows:
   version: 2
   build_deploy:
@@ -84,6 +87,6 @@ workflows:
       - netlify-deploy:
           requires:
             - build
-      - docker-build:
+      - docker-build-push:
           requires:
             - install
